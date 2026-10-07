@@ -49,3 +49,6 @@ CMAPSSData/
 /checkpoints_v*/
 /figures_v*/
 *.pth
+# Baselines: small per-subset weights are tracked; regenerated CSV dumps are not
+!baselines/**/*.pth
+baselines/**/*.csv
