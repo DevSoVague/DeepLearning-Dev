@@ -46,10 +46,18 @@ cd DeepLearning-Dev
 python3.10 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 # put the C-MAPSS files in ./CMAPSSData (see Data below)
+
+# evaluate the shipped v12 checkpoints, no training (CPU is fine, about a minute)
+python scripts/evaluate.py --compare     # RMSE + PHM score per subset, diffed against v12_results.json
+python scripts/evaluate.py --check-only  # only load every checkpoint, no data needed
+
+# retrain from scratch (writes ./checkpoints_v12/ and ./figures_v12/)
 jupyter notebook dev_contri_1_2_final.ipynb
 # baselines: run from their own folder so relative paths resolve
 cd baselines/lstm && jupyter notebook lstm_multi_v2.ipynb
 ```
+
+`scripts/evaluate.py` loads the six checkpoints in `checkpoints/checkpoints_v12/` with the model classes in `models.py` (copied unchanged from the notebook), rebuilds the notebook's test preprocessing (regression normalization fitted on the four training sets, last 30-cycle window per test engine) and reproduces the v12 RMSE and PHM scores in the Results table exactly. Use `--data-dir` if your C-MAPSS copy lives elsewhere and `--models base_transformer ...` to pick checkpoints.
 
 `dev_contri_1_2_final.ipynb` is the final (v12) notebook and keeps its outputs, so you can read the results without running it. Re-running it writes new checkpoints and figures to `./checkpoints_v12/` and `./figures_v12/`. It picks CUDA, then Apple MPS, then CPU. The baseline notebooks (`baselines/lstm/lstm_multi_v2.ipynb`, `baselines/dcnn/final_dcnn_variant.ipynb`) also keep their outputs and load the saved per-subset `.pth` weights in their evaluation cell, so evaluation runs without retraining.
 
@@ -82,6 +90,7 @@ Test RMSE (cycles, lower is better), one prediction per test engine from its las
 | Transformer | 14.82 (399) | 24.48 (5,914) | 14.30 (330) | 24.22 (5,146) |
 | Transformer + GRL | 14.09 (313) | 41.18 (253,885) | 14.20 (408) | 40.06 (277,850) |
 | TCN-GRU (extra encoder in the notebook) | 15.01 (404) | 25.36 (10,661) | 15.32 (442) | 24.06 (3,404) |
+| TCN-GRU + GRL | 15.39 (437) | 54.72 (2,640,921) | 14.96 (416) | 53.15 (1,618,266) |
 | Zheng et al. 2017 (reference) | 16.10 | | | |
 
 The protocols differ, so compare across the two groups with care: the baselines train one model per subset with min-max scaling, RUL clipped at 125 and (for the DCNN) per-subset window sizes of 30/20/30/15, while the main models train one model on all four subsets with regression normalization, W = 30 and RUL clipped at 125 (FD001/FD003) or 145 (FD002/FD004).
@@ -104,6 +113,8 @@ More figures (t-SNE, training curves, GRL dynamics, error buckets, earlier sweep
 .
 ├── dev_contri_1_2_final.ipynb   # final v12 notebook: TCN, Transformer, TCN-GRU + GRL variants (outputs kept)
 ├── eda_v1.ipynb                 # exploratory data analysis (outputs cleared)
+├── models.py                    # TCN, Transformer, TCN-GRU and GRL wrapper (from the v12 notebook)
+├── scripts/evaluate.py          # load checkpoints_v12/*.pt and score them on the C-MAPSS test sets
 ├── baselines/
 │   ├── lstm/                    # LSTM baseline: notebooks, model/preprocessing/train/evaluate scripts, weights
 │   ├── dcnn/                    # Deep CNN variant (Li et al., 2018): notebook, weights, notes
